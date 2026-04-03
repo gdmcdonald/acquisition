@@ -68,6 +68,13 @@ function formatMoney(m) {
   return `$${m.toFixed(1)}M`;
 }
 
+// Compact version — no decimal places, for tight mobile tiles
+function formatMoneyInt(m) {
+  if (m >= 1_000_000) return `$${Math.round(m / 1_000_000)}T`;
+  if (m >= 1_000)     return `$${Math.round(m / 1_000)}B`;
+  return `$${Math.round(m)}M`;
+}
+
 function makeName(sector) {
   return `${choice(COMPANY_PREFIX)} ${choice(COMPANY_SUFFIX[sector])}`;
 }
@@ -663,7 +670,7 @@ const styles = {
   title:       { fontSize: 44, fontWeight: 700, letterSpacing: "-0.03em", margin: "4px 0 10px" },
   eyebrow:     { fontSize: 12, color: "#94a3b8", letterSpacing: "0.22em", textTransform: "uppercase" },
   subtitle:    { color: "#cbd5e1", maxWidth: 760, lineHeight: 1.5 },
-  resources:   { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: 12, marginTop: 12 },
+  resources:   { display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(130px, 1fr))", gap: 12, marginTop: 12 },
   card: {
     background: "rgba(15, 23, 42, 0.92)",
     border: "1px solid rgba(71, 85, 105, 0.85)",
@@ -684,14 +691,17 @@ const styles = {
   button: {
     background: "#2563eb", color: "white", border: 0,
     borderRadius: 14, padding: "10px 14px", fontWeight: 600, cursor: "pointer",
+    minHeight: 44,
   },
   buttonSecondary: {
     background: "#1e293b", color: "#f8fafc", border: "1px solid #475569",
     borderRadius: 14, padding: "10px 14px", fontWeight: 600, cursor: "pointer",
+    minHeight: 44,
   },
   buttonDisabled: {
     background: "#334155", color: "#94a3b8", border: 0,
     borderRadius: 14, padding: "10px 14px", fontWeight: 600, cursor: "not-allowed",
+    minHeight: 44,
   },
   badge:         { display: "inline-block", background: "#1e293b", color: "#e2e8f0", padding: "5px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600 },
   pill:          { display: "inline-block", background: "#111827", border: "1px solid #334155", color: "#e2e8f0", padding: "5px 10px", borderRadius: 999, fontSize: 12, marginRight: 6, marginBottom: 6 },
@@ -717,12 +727,12 @@ const TICKER_COLORS = {
 
 // ── UI Components ─────────────────────────────────────────────────────────────
 
-function ResourceCard({ label, value, sub, valueColor }) {
+function ResourceCard({ label, value, sub, valueColor, compact }) {
   return (
-    <div style={styles.card}>
-      <div style={styles.statLabel}>{label}</div>
-      <div style={{ ...styles.statValue, color: valueColor || "#f8fafc" }}>{value}</div>
-      {sub ? <div style={{ fontSize: 13, color: "#94a3b8" }}>{sub}</div> : null}
+    <div style={{ ...styles.card, padding: compact ? "10px 12px" : 16 }}>
+      <div style={{ ...styles.statLabel, fontSize: compact ? 10 : 12 }}>{label}</div>
+      <div style={{ ...styles.statValue, fontSize: compact ? 20 : 28, color: valueColor || "#f8fafc" }}>{value}</div>
+      {sub && !compact ? <div style={{ fontSize: 13, color: "#94a3b8" }}>{sub}</div> : null}
     </div>
   );
 }
@@ -820,7 +830,7 @@ function MiniStat({ label, value, tooltip, delta, goodDirection = "up" }) {
  * Previously the thresholds (0.72, 0.65, 0.6) were hardcoded here, duplicating
  * the values already used in buyDeal. Single source of truth now.
  */
-function DealCard({ deal, onBuy, affordable, affordableDebt, debtCapacity }) {
+function DealCard({ deal, onBuy, affordable, affordableDebt, debtCapacity, compact }) {
   const rarity       = RARITY_CONFIG[deal.rarity];
   const equityNeeded = deal.price * (1 - deal.debtTolerance);
   const urgency      = deal.expiry < 6;
@@ -829,42 +839,46 @@ function DealCard({ deal, onBuy, affordable, affordableDebt, debtCapacity }) {
     <div style={{
       ...styles.card,
       minWidth: 0,
+      padding: compact ? 10 : 16,
       borderColor: rarity.border,
       boxShadow: urgency
         ? `0 0 0 1px ${rarity.border}, 0 0 22px rgba(255,255,255,0.08)`
         : styles.card.boxShadow,
     }}>
-      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: 10 }}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 8, marginBottom: compact ? 7 : 10 }}>
         <div>
-          <div style={{ fontWeight: 700, lineHeight: 1.2 }}>{deal.logo} {deal.name}</div>
-          <div style={{ fontSize: 13, color: "#cbd5e1", marginTop: 4 }}>{deal.sector} · {deal.size}</div>
+          <div style={{ fontWeight: 700, lineHeight: 1.2, fontSize: compact ? 13 : 15 }}>{deal.logo} {deal.name}</div>
+          <div style={{ fontSize: compact ? 11 : 13, color: "#cbd5e1", marginTop: 3 }}>{deal.sector} · {deal.size}</div>
         </div>
-        <span style={styles.badge}>{deal.rarityLabel}</span>
+        <span style={{ ...styles.badge, fontSize: compact ? 10 : 12 }}>{deal.rarityLabel}</span>
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 10 }}>
-        <MiniStat label="Price"     value={formatMoney(deal.price)}                    tooltip="Headline acquisition price." />
-        <MiniStat label="Equity"    value={formatMoney(equityNeeded)}                  tooltip="Cash needed if preferred debt is available." />
+      {/* Compact: 3-col grid keeps height down; full: 2-col */}
+      <div style={{ display: "grid", gridTemplateColumns: compact ? "1fr 1fr 1fr" : "1fr 1fr", gap: compact ? 5 : 8, marginBottom: compact ? 7 : 10 }}>
+        <MiniStat label="Price"     value={formatMoneyInt(deal.price)}                 tooltip="Headline acquisition price." />
+        <MiniStat label="Equity"    value={formatMoneyInt(equityNeeded)}               tooltip="Cash needed if preferred debt is available." />
+        <MiniStat label="Yield"     value={`${formatMoneyInt(deal.income)}/t`}         tooltip="Base cash contribution if acquired." />
         <MiniStat label="Leverage"  value={`${Math.round(deal.debtTolerance * 100)}%`} tooltip="Preferred debt share under normal credit conditions." />
-        <MiniStat label="Yield"     value={`${formatMoney(deal.income)}/tick`}          tooltip="Base cash contribution if acquired." />
-        <MiniStat label="Employees" value={deal.employees.toLocaleString()}             tooltip="Current headcount. Will change with restructuring decisions." />
+        <MiniStat label="Employees" value={deal.employees.toLocaleString()}            tooltip="Current headcount. Will change with restructuring decisions." />
       </div>
 
-      <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
-        Preferred debt: {formatMoney(deal.price * deal.debtTolerance)} · Debt room: {formatMoney(debtCapacity)}
-      </div>
+      {!compact && (
+        <div style={{ fontSize: 12, color: "#94a3b8", marginBottom: 10 }}>
+          Preferred debt: {formatMoney(deal.price * deal.debtTolerance)} · Debt room: {formatMoney(debtCapacity)}
+        </div>
+      )}
 
       {/* Tags from THESIS_TAG_RULES — no hardcoded thresholds here */}
-      <div style={{ marginBottom: 10 }}>
+      <div style={{ marginBottom: compact ? 7 : 10 }}>
         {THESIS_TAG_RULES.map(rule => (
-          <span key={rule.stat} style={styles.pill}>
+          <span key={rule.stat} style={{ ...styles.pill, fontSize: compact ? 10 : 12, padding: compact ? "3px 7px" : "5px 10px" }}>
             {deal[rule.stat] > rule.threshold ? rule.high : rule.low}
           </span>
         ))}
       </div>
 
-      <div style={{ marginBottom: 10 }}>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 12, color: "#94a3b8", marginBottom: 4 }}>
+      <div style={{ marginBottom: compact ? 7 : 10 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: 11, color: "#94a3b8", marginBottom: 4 }}>
           <span>Offer window</span>
           <span>{deal.expiry.toFixed(0)}s</span>
         </div>
@@ -872,7 +886,7 @@ function DealCard({ deal, onBuy, affordable, affordableDebt, debtCapacity }) {
       </div>
 
       <button
-        style={{ ...(affordable ? styles.button : styles.buttonDisabled), width: "100%" }}
+        style={{ ...(affordable ? styles.button : styles.buttonDisabled), width: "100%", fontSize: compact ? 13 : 14 }}
         disabled={!affordable}
         onClick={() => onBuy(deal.id)}
       >
@@ -1162,13 +1176,17 @@ function App() {
   const [state, setState]         = useState(createInitialState);
   const [loaded, setLoaded]       = useState(false);
   const [isNarrow, setIsNarrow]   = useState(false);
+  const [isMobile, setIsMobile]   = useState(false);
   const [retired, setRetired]     = useState(false);
   const lastSave = useRef(0);
 
   useEffect(() => {
     setState(hydrateState());
     setLoaded(true);
-    const onResize = () => setIsNarrow(window.innerWidth < 900);
+    const onResize = () => {
+      setIsNarrow(window.innerWidth < 900);
+      setIsMobile(window.innerWidth < 640);
+    };
     onResize();
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
@@ -1206,34 +1224,47 @@ function App() {
   }
 
   return (
-    <div style={styles.page}>
+    <div style={{ ...styles.page, padding: isMobile ? 12 : 20 }}>
       {retired && <RetireScreen state={state} onNewRun={handleNewRun} />}
 
       <div style={styles.wrap}>
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", gap: 16, flexWrap: "wrap" }}>
           <div>
-            <div style={styles.title}>Acqui$ition.lol</div>
-            <div style={styles.subtitle}>
-              Private equity simulator.
+            <div style={{ ...styles.title, fontSize: isMobile ? 24 : 44 }}>💸 Acqui$ition.lol</div>
+            {!isMobile && <div style={styles.subtitle}>Private equity simulator.</div>}
+          </div>
+          {/* Action buttons: shown in header on desktop, moved to Stats tab on mobile */}
+          {!isMobile && (
+            <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
+              <button style={styles.buttonSecondary} onClick={() => setState(s => addLog(s, "LPs reassured. Nothing material disclosed.", "info"))}>
+                Smooth talk LPs
+              </button>
+              <button style={{ ...styles.buttonSecondary, borderColor: "#475569" }} onClick={() => setRetired(true)}>
+                Close fund
+              </button>
+              <button style={styles.buttonSecondary} onClick={handleNewRun}>
+                New run
+              </button>
             </div>
-          </div>
-          <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
-            <button style={styles.buttonSecondary} onClick={() => setState(s => addLog(s, "LPs reassured. Nothing material disclosed.", "info"))}>
-              Smooth talk LPs
-            </button>
-            <button style={{ ...styles.buttonSecondary, borderColor: "#475569" }} onClick={() => setRetired(true)}>
-              Close fund
-            </button>
-            <button style={styles.buttonSecondary} onClick={handleNewRun}>
-              New run
-            </button>
-          </div>
+          )}
         </div>
 
-        <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginTop: 18, marginBottom: 14 }}>
-          {["market", "portfolio",  "dashboard", "lobbying"].map(tab => (
-            <button key={tab} style={activeTab === tab ? styles.button : styles.buttonSecondary} onClick={() => setActiveTab(tab)}>
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
+        <div style={{ display: "flex", gap: isMobile ? 4 : 8, marginTop: isMobile ? 10 : 18, marginBottom: 14 }}>
+          {[
+            { id: "market",    emoji: "📈", full: "Market",    short: "Deals"     },
+            { id: "portfolio", emoji: "🏢", full: "Portfolio", short: "Portfolio" },
+            { id: "dashboard", emoji: "📊", full: "Dashboard", short: "Stats"     },
+            { id: "lobbying",  emoji: "🏛️", full: "Lobbying",  short: "Lobby"     },
+          ].map(tab => (
+            <button
+              key={tab.id}
+              style={{
+                ...(activeTab === tab.id ? styles.button : styles.buttonSecondary),
+                ...(isMobile ? { flex: 1, padding: "10px 4px", fontSize: 12 } : {}),
+              }}
+              onClick={() => setActiveTab(tab.id)}
+            >
+              {isMobile ? `${tab.emoji} ${tab.short}` : tab.full}
             </button>
           ))}
         </div>
@@ -1242,12 +1273,12 @@ function App() {
 
 
         <div style={styles.resources}>
-          <ResourceCard label="💵 Cash"       value={formatMoney(state.cash)} />
-          <ResourceCard label="🏦 Assets Under Management"        value={formatMoney(state.aum)}/>
-          <ResourceCard label="💸 Debt Room"        value={formatMoney(state.debtCapacity)}/>
-          <ResourceCard label="📰 Reputation" value={`${state.reputation.toFixed(0)}/100`} sub="Limited Partners confidence" />
-          <ResourceCard label="😥 Stress"     value={`${state.stress.toFixed(0)}/100`}     sub="Personal strain"          valueColor={stressColor} />
-          <ResourceCard label="🏡 Family"     value={`${state.family.toFixed(0)}/100`}     sub="You should maybe go home" valueColor={familyColor} />
+          <ResourceCard compact={isMobile} label={isMobile ? "💵 Cash"  : "💵 Cash"}                value={isMobile ? formatMoneyInt(state.cash)         : formatMoney(state.cash)} />
+          <ResourceCard compact={isMobile} label={isMobile ? "🏦 AUM"   : "🏦 Assets Under Management"} value={isMobile ? formatMoneyInt(state.aum)          : formatMoney(state.aum)} />
+          <ResourceCard compact={isMobile} label={isMobile ? "💸 Debt"  : "💸 Debt Room"}           value={isMobile ? formatMoneyInt(state.debtCapacity)  : formatMoney(state.debtCapacity)} />
+          <ResourceCard compact={isMobile} label={isMobile ? "📰 Rep"   : "📰 Reputation"}          value={`${state.reputation.toFixed(0)}%`}  sub="Limited Partners confidence" valueColor={undefined} />
+          <ResourceCard compact={isMobile} label={isMobile ? "😥 Stress": "😥 Stress"}              value={`${state.stress.toFixed(0)}%`}       sub="Personal strain"             valueColor={stressColor} />
+          <ResourceCard compact={isMobile} label={isMobile ? "🏡 Family": "🏡 Family"}              value={`${state.family.toFixed(0)}%`}       sub="You should maybe go home"    valueColor={familyColor} />
         </div>
 
         {/* ── Market ── */}
@@ -1281,6 +1312,7 @@ function App() {
                       affordable={state.cash >= deal.price - Math.min(state.debtCapacity, deal.price * deal.debtTolerance)}
                       affordableDebt={state.debtCapacity >= deal.price * deal.debtTolerance}
                       debtCapacity={state.debtCapacity}
+                      compact={isMobile}
                     />
                   )
                 )}
@@ -1293,6 +1325,20 @@ function App() {
         {activeTab === "dashboard" && (
           <div style={{ marginTop: 16 }}>
             <div style={{ ...styles.card, maxWidth: 880 }}>
+              {/* On mobile, action buttons live here instead of the header */}
+              {isMobile && (
+                <div style={{ display: "flex", gap: 8, flexWrap: "wrap", marginBottom: 16 }}>
+                  <button style={{ ...styles.buttonSecondary, flex: 1 }} onClick={() => setState(s => addLog(s, "LPs reassured. Nothing material disclosed.", "info"))}>
+                    Smooth talk LPs
+                  </button>
+                  <button style={{ ...styles.buttonSecondary, flex: 1, borderColor: "#475569" }} onClick={() => setRetired(true)}>
+                    Close fund
+                  </button>
+                  <button style={{ ...styles.buttonSecondary, flex: 1 }} onClick={handleNewRun}>
+                    New run
+                  </button>
+                </div>
+              )}
               <div style={styles.sectionTitle}>Firm Dashboard</div>
               <div style={{ ...styles.smallText, marginBottom: 12 }}>
                 You can always buy all-cash. Debt room replenishes over time and returns faster when you exit positions.
