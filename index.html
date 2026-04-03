@@ -27,6 +27,12 @@
   <meta name="twitter:description" content="Acquire companies, slash headcount, extract value, lobby the government. An idle game about private equity. Free to play in your browser." />
   <meta name="twitter:image"       content="https://acquisition.lol/og-image.png" />
 
+  <!-- Mobile / PWA -->
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Acqui$ition" />
+
   <!-- React + Babel via CDN — no build step needed -->
   <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
@@ -34,7 +40,10 @@
 
   <style>
     * { box-sizing: border-box; }
-    body { margin: 0; }
+    body { margin: 0; max-width: 100%; overflow-x: hidden; }
+
+    /* Remove 300ms tap delay on touch devices */
+    button { touch-action: manipulation; }
 
     /*
       Ticker tape animation.
