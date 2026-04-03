@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Acqui$ition.lol</title>
+
+  <!-- React + Babel via CDN — no build step needed -->
+  <script src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+  <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+  <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+
+  <style>
+    * { box-sizing: border-box; }
+    body { margin: 0; }
+
+    /*
+      Ticker tape animation.
+      Lives here (not in a React component) so React never touches
+      the animation property and can't accidentally reset it mid-scroll.
+
+      The -50% approach: the ticker inner div renders its content TWICE
+      side by side, so the total width is 2× the visible content.
+      Translating by -50% moves exactly one full content-width to the left,
+      at which point the loop restarts seamlessly with no gap or jump.
+      This avoids the old translateX(±100%) bug where the element's own
+      variable width determined the start/end positions, causing speed to
+      change as log entries accumulated.
+    */
+    @keyframes acquisitionTicker {
+      0%   { transform: translateX(0); }
+      100% { transform: translateX(-50%); }
+    }
+
+    /*
+      Applied via className so React's style reconciler never writes
+      the animation property inline and accidentally restarts the scroll.
+    */
+    .ticker-inner {
+      display: inline-flex;
+      align-items: center;
+      white-space: nowrap;
+      animation: acquisitionTicker 70s linear infinite;
+    }
+  </style>
+</head>
+<body>
+  <div id="root"></div>
+
+  <!--
+    Load order matters:
+    1. gameContent.js — plain JS, sets window.CONTENT with all data/copy
+    2. game.js        — Babel-transpiled JSX, reads from window.CONTENT
+  -->
+  <script src="gameContent.js"></script>
+  <script type="text/babel" src="game.js"></script>
+</body>
+</html>
