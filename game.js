@@ -1215,7 +1215,9 @@ function App() {
   const aumProgress        = clamp((state.aum / nextAumUnlock) * 100, 0, 100);
   const stressColor        = state.stress > 70 ? "#fca5a5" : state.stress > 45 ? "#fcd34d" : "#86efac";
   const familyColor        = state.family < 30 ? "#fca5a5" : state.family < 55 ? "#fcd34d" : "#86efac";
-  const portfolioEmployees = state.portfolio.reduce((sum, c) => sum + (c.employees || 0), 0);
+  const portfolioEmployees  = state.portfolio.reduce((sum, c) => sum + (c.employees || 0), 0);
+  const sectorCounts        = state.portfolio.reduce((acc, c) => { acc[c.sector] = (acc[c.sector] || 0) + 1; return acc; }, {});
+  const lobbyingUnlocked    = Object.values(sectorCounts).some(n => n >= 3);
 
   function handleNewRun() {
     setRetired(false);
@@ -1251,22 +1253,26 @@ function App() {
 
         <div style={{ display: "flex", gap: isMobile ? 4 : 8, marginTop: isMobile ? 10 : 18, marginBottom: 14 }}>
           {[
-            { id: "market",    emoji: "📈", full: "Market",    short: "Deals"     },
-            { id: "portfolio", emoji: "🏢", full: "Portfolio", short: "Portfolio" },
-            { id: "dashboard", emoji: "📊", full: "Dashboard", short: "Stats"     },
-            { id: "lobbying",  emoji: "🏛️", full: "Lobbying",  short: "Lobby"     },
-          ].map(tab => (
-            <button
-              key={tab.id}
-              style={{
-                ...(activeTab === tab.id ? styles.button : styles.buttonSecondary),
-                ...(isMobile ? { flex: 1, padding: "10px 4px", fontSize: 12 } : {}),
-              }}
-              onClick={() => setActiveTab(tab.id)}
-            >
-              {isMobile ? `${tab.emoji} ${tab.short}` : `${tab.emoji} ${tab.full}`}
-            </button>
-          ))}
+            { id: "market",    emoji: "📈", full: "Market",    short: "Deals",     locked: false },
+            { id: "portfolio", emoji: "🏢", full: `Portfolio (${state.portfolio.length})`, short: `Portfolio (${state.portfolio.length})`, locked: false },
+            { id: "dashboard", emoji: "📊", full: "Dashboard", short: "Stats",     locked: false },
+            { id: "lobbying",  emoji: "🏛️", full: "Lobbying",  short: "Lobby",     locked: !lobbyingUnlocked },
+          ].map(tab => {
+            const isActive   = activeTab === tab.id;
+            const tabStyle   = isActive ? styles.button : tab.locked ? styles.buttonDisabled : styles.buttonSecondary;
+            const mobileSize = { flex: 1, padding: "10px 4px", fontSize: 12 };
+            return (
+              <button
+                key={tab.id}
+                style={{ ...tabStyle, ...(isMobile ? mobileSize : {}) }}
+                disabled={tab.locked}
+                title={tab.locked ? "Acquire 3 companies in the same sector to unlock lobbying" : undefined}
+                onClick={() => !tab.locked && setActiveTab(tab.id)}
+              >
+                {isMobile ? `${tab.emoji} ${tab.short}` : `${tab.emoji} ${tab.full}`}
+              </button>
+            );
+          })}
         </div>
 
         <TickerTape state={state} />
