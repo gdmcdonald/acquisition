@@ -1272,7 +1272,7 @@ function App() {
         <TickerTape state={state} />
 
 
-        <div style={styles.resources}>
+        <div style={{ ...styles.resources, gridTemplateColumns: isMobile ? "repeat(3, 1fr)" : "repeat(auto-fit, minmax(130px, 1fr))" }}>
           <ResourceCard compact={isMobile} label={isMobile ? "💵 Cash"  : "💵 Cash"}                value={isMobile ? formatMoneyInt(state.cash)         : formatMoney(state.cash)} />
           <ResourceCard compact={isMobile} label={isMobile ? "🏦 AUM"   : "🏦 Assets Under Management"} value={isMobile ? formatMoneyInt(state.aum)          : formatMoney(state.aum)} />
           <ResourceCard compact={isMobile} label={isMobile ? "💸 Debt"  : "💸 Debt Room"}           value={isMobile ? formatMoneyInt(state.debtCapacity)  : formatMoney(state.debtCapacity)} />
