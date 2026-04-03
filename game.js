@@ -1264,7 +1264,7 @@ function App() {
               }}
               onClick={() => setActiveTab(tab.id)}
             >
-              {isMobile ? `${tab.emoji} ${tab.short}` : tab.full}
+              {isMobile ? `${tab.emoji} ${tab.short}` : `${tab.emoji} ${tab.full}`}
             </button>
           ))}
         </div>
